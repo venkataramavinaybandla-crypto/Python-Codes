@@ -1,0 +1,82 @@
+from urllib.parse import urlparse
+import re
+import ipaddress\
+
+SUSPICIOUS_WORDS = (
+    "login signin update secure bank confirm verify account authorize "
+    "click free voucher reward prize install payment"
+).split()
+
+def normalize_url(url):
+    if not re.match(r'^[a-zA-Z]+://', url):
+        url = 'http://' + url
+    return url
+
+def get_hostname(url):
+    url = normalize_url(url)
+    parsed = urlparse(url)
+    return parsed.hostname or ""
+
+def is_ip(hostname):
+    """Return True if the hostname is an IPv4/IPv6 address."""
+    if not hostname:
+        return False
+    try:
+        ipaddress.ip_address(hostname)
+        return True
+    except Exception:
+        return False
+
+def simple_score(url):
+    """Return (score, reasons) where higher score -> more suspicious."""
+    reasons = []
+    score = 0
+    u = normalize_url(url)
+    host = get_hostname(u)
+    low = u.lower()
+
+    if len(u) > 75:
+        score += 1
+        reasons.append("very long URL")
+
+    if is_ip(host):
+        score += 2
+        reasons.append("uses raw IP address")
+
+    for w in SUSPICIOUS_WORDS:
+        if w in low:
+            score += 1
+            reasons.append(f"contains suspicious word '{w}'")
+            break
+
+    if "@" in u:
+        score += 2
+        reasons.append("contains '@' (possible credential trick)")
+
+    if host.count('.') >= 4:
+        score += 1
+        reasons.append("many subdomains")
+    if '-' in host:
+        score += 1
+        reasons.append("hyphen in domain")
+
+    if host.endswith(('.xyz', '.top', '.club', '.online', '.site', '.pw', '.info')):
+        score += 1
+        reasons.append("uses commonly abused TLD")
+
+    return score, reasons
+
+def decide(score, threshold=3):
+    return " Harmful" if score >= threshold else " Likely safe"
+
+if __name__ == "__main__":
+    tests = [
+        "http://192.168.0.1/login",
+        "https://accounts.google.com/signin",
+        "http://free-gift.xyz/verify",
+        "example.com",
+        "http://very-long-domain-name-example-with-lots-of-subdomains.sub.example.co.uk/path/very/long"
+    ]
+    for t in tests:
+        s, r = simple_score(t)
+ print(f"{t}\n  score={s}, decision={decide(s)}\n  reasons={r}\n")
