@@ -11,7 +11,7 @@ public class Main {
         double tax = (salary * taxRate) / 100;
         double salaryAfterTax = salary - tax;
 
-        double fixedExpenses = (salaryAfterTax * 10) / 100; // assume 10% of post-tax salary
+        double fixedExpenses = (salaryAfterTax * 10) / 100;
         double finalAnnualBalance = salaryAfterTax - fixedExpenses;
         double finalMonthlyBalance = finalAnnualBalance / 12;
 
@@ -156,3 +156,4 @@ public class Main {
         return range;
     }
 }
+
