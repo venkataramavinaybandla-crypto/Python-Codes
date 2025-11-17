@@ -6,7 +6,8 @@ file_path = "C:\\Users\\Admin\\OneDrive\\Desktop\\Qrcode.png"
 qr = qrcode.QRCode()
 qr.add_data(URL)
 
-img = qr.make_image(fill_color="white", back_color="teal")
+img = qr.make_image(fill_color="black", back_color="red")
 img.save(file_path)
 
 print("Your QR code has been saved to " + file_path)
+
