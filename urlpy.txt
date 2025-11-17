@@ -1,24 +1,26 @@
 from urllib.parse import urlparse
 import re
-import ipaddress\
+import ipaddress
 
 SUSPICIOUS_WORDS = (
     "login signin update secure bank confirm verify account authorize "
     "click free voucher reward prize install payment"
 ).split()
 
+
 def normalize_url(url):
     if not re.match(r'^[a-zA-Z]+://', url):
         url = 'http://' + url
     return url
+
 
 def get_hostname(url):
     url = normalize_url(url)
     parsed = urlparse(url)
     return parsed.hostname or ""
 
+
 def is_ip(hostname):
-    """Return True if the hostname is an IPv4/IPv6 address."""
     if not hostname:
         return False
     try:
@@ -27,8 +29,8 @@ def is_ip(hostname):
     except Exception:
         return False
 
+
 def simple_score(url):
-    """Return (score, reasons) where higher score -> more suspicious."""
     reasons = []
     score = 0
     u = normalize_url(url)
@@ -56,6 +58,7 @@ def simple_score(url):
     if host.count('.') >= 4:
         score += 1
         reasons.append("many subdomains")
+
     if '-' in host:
         score += 1
         reasons.append("hyphen in domain")
@@ -66,17 +69,20 @@ def simple_score(url):
 
     return score, reasons
 
+
 def decide(score, threshold=3):
-    return " Harmful" if score >= threshold else " Likely safe"
+    return "Harmful" if score >= threshold else "Likely safe"
+
 
 if __name__ == "__main__":
-    tests = [
-        "http://192.168.0.1/login",
-        "https://accounts.google.com/signin",
-        "http://free-gift.xyz/verify",
-        "example.com",
-        "http://very-long-domain-name-example-with-lots-of-subdomains.sub.example.co.uk/path/very/long"
-    ]
-    for t in tests:
-        s, r = simple_score(t)
- print(f"{t}\n  score={s}, decision={decide(s)}\n  reasons={r}\n")
+    print(" URL threat Detector \n")
+    url = input("Enter a URL to check: ").strip()
+
+    score, reasons = simple_score(url)
+    print("\n--- Result ---")
+    print(f"URL: {url}")
+    print(f"Score: {score}")
+    print(f"Decision: {decide(score)}")
+    print("\nReasons:")
+    for r in reasons:
+        print(f"- {r}")
