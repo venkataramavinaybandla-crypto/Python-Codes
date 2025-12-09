@@ -210,9 +210,9 @@ public class Main {
 
             switch (choice) {
                 case 1:
-                    System.out.print("Enter Expense Name: ");
+                    System.out.print("Enter Expense Name(Cough Syrup, Chair, etc): ");
                     String name = sc.nextLine();
-                    System.out.print("Enter Category: ");
+                    System.out.print("Enter Category(Food, Furniture, etc): ");
                     String category = sc.nextLine();
 
                     double amount = 0;
@@ -318,3 +318,4 @@ public class Main {
         sc.close();
     }
 }
+
