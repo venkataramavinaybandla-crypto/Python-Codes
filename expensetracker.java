@@ -178,7 +178,7 @@ public class Main {
                 break;
             } catch (InputMismatchException e) {
                 System.out.println("Invalid input! Please enter a valid positive number.");
-                sc.nextLine(); // Clear invalid input
+                sc.nextLine();
             }
         }
 
@@ -318,4 +318,5 @@ public class Main {
         sc.close();
     }
 }
+
 
