@@ -201,7 +201,7 @@ public class Main {
             choice = -1;
             try {
                 choice = sc.nextInt();
-                sc.nextLine(); // Consume newline
+                sc.nextLine();
             } catch (InputMismatchException e) {
                 System.out.println("Please enter a valid number.");
                 sc.nextLine();
@@ -318,5 +318,6 @@ public class Main {
         sc.close();
     }
 }
+
 
 
