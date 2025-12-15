@@ -1,0 +1,157 @@
+import jakarta.servlet.http.*;
+import jakarta.servlet.*;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import java.io.*;
+import java.sql.*;
+
+public class FinanceManagerWeb {
+
+    static Connection db() throws Exception {
+        Class.forName("org.sqlite.JDBC");
+        Connection c = DriverManager.getConnection("jdbc:sqlite:finance.db");
+        c.createStatement().execute(
+            "CREATE TABLE IF NOT EXISTS expenses (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT, amount REAL, date TEXT)"
+        );
+        return c;
+    }
+
+    static int taxRate(double s) {
+        if (s <= 400000) return 0;
+        if (s <= 800000) return 5;
+        if (s <= 1200000) return 10;
+        if (s <= 1600000) return 15;
+        if (s <= 2000000) return 20;
+        if (s <= 2400000) return 25;
+        return 30;
+    }
+
+    static class Home extends HttpServlet {
+        protected void doGet(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            p.getWriter().write("""
+            <html><body>
+            <h2>Personal Finance Manager</h2>
+            <form method='post'>
+            <input name='salary' type='number'>
+            <button>Enter</button>
+            </form>
+            </body></html>
+            """);
+        }
+
+        protected void doPost(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            p.sendRedirect("/dashboard?salary=" + r.getParameter("salary"));
+        }
+    }
+
+    static class Dashboard extends HttpServlet {
+        protected void doGet(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            double salary = Double.parseDouble(r.getParameter("salary"));
+            double tax = salary * taxRate(salary) / 100;
+            double after = salary - tax;
+            double fixed = after * 0.10;
+            double monthly = (after - fixed) / 12;
+
+            double spent = 0;
+            try {
+                Connection c = db();
+                ResultSet rs = c.createStatement().executeQuery("SELECT SUM(amount) FROM expenses");
+                if (rs.next()) spent = rs.getDouble(1);
+                c.close();
+            } catch (Exception e) {}
+
+            double savings = monthly - spent;
+
+            p.getWriter().write("""
+            <html><body>
+            <h2>Dashboard</h2>
+            <p>Monthly Balance: ₹""" + monthly + """</p>
+            <p>Total Expenses: ₹""" + spent + """</p>
+            <p>Savings: ₹""" + savings + """</p>
+            <a href='/expenses'>Expenses</a> |
+            <a href='/loan'>Loan</a>
+            </body></html>
+            """);
+        }
+    }
+
+    static class Expenses extends HttpServlet {
+        protected void doGet(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            StringBuilder list = new StringBuilder();
+            try {
+                Connection c = db();
+                ResultSet rs = c.createStatement().executeQuery("SELECT * FROM expenses");
+                while (rs.next()) {
+                    list.append("<li>")
+                        .append(rs.getString(2)).append(" | ₹")
+                        .append(rs.getDouble(4))
+                        .append("</li>");
+                }
+                c.close();
+            } catch (Exception e) {}
+
+            p.getWriter().write("""
+            <html><body>
+            <h3>Add Expense</h3>
+            <form method='post'>
+            <input name='name'>
+            <input name='category'>
+            <input name='amount'>
+            <input name='date'>
+            <button>Add</button>
+            </form>
+            <ul>
+            """ + list + """
+            </ul>
+            </body></html>
+            """);
+        }
+
+        protected void doPost(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            try {
+                Connection c = db();
+                PreparedStatement ps = c.prepareStatement(
+                    "INSERT INTO expenses (name, category, amount, date) VALUES (?,?,?,?)"
+                );
+                ps.setString(1, r.getParameter("name"));
+                ps.setString(2, r.getParameter("category"));
+                ps.setDouble(3, Double.parseDouble(r.getParameter("amount")));
+                ps.setString(4, r.getParameter("date"));
+                ps.executeUpdate();
+                c.close();
+            } catch (Exception e) {}
+            p.sendRedirect("/expenses");
+        }
+    }
+
+    static class Loan extends HttpServlet {
+        protected void doGet(HttpServletRequest r, HttpServletResponse p) throws IOException {
+            double e = 0;
+            try {
+                Connection c = db();
+                ResultSet rs = c.createStatement().executeQuery("SELECT SUM(amount) FROM expenses");
+                if (rs.next()) e = rs.getDouble(1);
+                c.close();
+            } catch (Exception ex) {}
+
+            String loan;
+            if (e <= 25000) loan = "₹7L - ₹14L";
+            else if (e <= 50000) loan = "₹17L - ₹33L";
+            else if (e <= 70000) loan = "₹30L - ₹58L";
+            else loan = "₹40L - ₹75L";
+
+            p.getWriter().write("<html><body><h2>Loan</h2><p>" + loan + "</p></body></html>");
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        Server server = new Server(8080);
+        ServletContextHandler h = new ServletContextHandler();
+        h.addServlet(Home.class, "/");
+        h.addServlet(Dashboard.class, "/dashboard");
+        h.addServlet(Expenses.class, "/expenses");
+        h.addServlet(Loan.class, "/loan");
+        server.setHandler(h);
+        server.start();
+    }
+}
